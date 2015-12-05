@@ -1,18 +1,20 @@
 from psychopyHelp import *
 hz=120.0
 
-myDlg = gui.Dlg(title="Setting experiment"); myDlg.addField('Observer:','dl')
+myDlg = gui.Dlg(title="Setting experiment"); myDlg.addField('Observer:','dl'); myDlg.addField('task (track/press):','press')
 myDlg.show(); expInfo = myDlg.data
 dataFile=openDataFile(expInfo[0])
+task=expInfo[1]
 
-win = visual.Window(monitor='testMonitor',allowGUI=False,units='deg',fullscr=1)
+win = visual.Window(monitor='testMonitor',allowGUI=False,units='deg')
 #win = visual.Window(monitor='macprotracking',allowGUI=False,units='deg',fullscr=1)
 fixation=visual.PatchStim(win, tex=None, mask='gauss', color=-1,size=.5)
 sti=visual.PatchStim(win, tex='None', mask='gauss')
 landmark=visual.PatchStim(win, tex='None', mask='gauss',color=-1)
+myMouse = event.Mouse(); myMouse.setVisible(0)
 fixation.setAutoDraw(True)
 
-vars={'angleIni': arange(0.0,360.0,60.0),'radius':[3.0],'freq':arange(0.75,3.75,0.25),'direction':[-1,1],'size':[2.0],
+vars={'radius':[3.0],'freq':arange(0.75,3.75,0.25),'direction':[-1,1],'size':[2.0],
            'angleLandmark':arange(0.0,360.0,45.0),'radiusLandmark':[4.75], 'sizeLandmark':[2.0],
             'durationIni':[1.0*hz],'durationRampingIni':[.75*hz],'duration':[2.0*hz],
             'durationRampingFinal':[.75*hz],'durationFinal':[1.0*hz],
@@ -23,15 +25,18 @@ print trials.nTotal
 nDone=0
 
 for thisTrial in trials:
+    response=None
     sti.setSize(thisTrial['size'])
     landmark.setSize(thisTrial['sizeLandmark'])
     r=thisTrial['radius']
     durationTrial= thisTrial['durationIni']+thisTrial['durationRampingIni']+thisTrial['duration'] + thisTrial['durationRampingFinal']+thisTrial['durationFinal'] 
     win.setRecordFrameIntervals(True)
+    angleIni=randint(0,359)
     
+    myMouse.clickReset()
     for frame in range(int(durationTrial)):
         sti.setColor(1)
-        angle=thisTrial['angleIni']+thisTrial['direction']*frame/hz*thisTrial['freq']*360.0
+        angle=angleIni+thisTrial['direction']*frame/hz*thisTrial['freq']*360.0
         anglerad=angle/180.0*pi
         x=r*cos(anglerad)
         y=r*sin(anglerad)
@@ -70,23 +75,40 @@ for thisTrial in trials:
         landmark.setPos([xLandmark,yLandmark]); landmark.draw()
         win.flip()
         esc()
-    
+
+        if task=='press':
+            buttons, times = myMouse.getPressed(getTime=True)
+            if buttons[0]==1 and response==None:
+                response=angle
+                responseTime=times[0]
+
     win.flip()
     win.setRecordFrameIntervals(False)
     
-    response=getResponse(['left','right'])
+    if task=='tracking':
+        response=getResponse(['left','right'])
     
     nDone+=1
     if nDone==1:
-        print >>dataFile, 'trial', 
+        print >>dataFile, 'trial', 'angleIni',
         for name in thisTrial.keys():
             print>>dataFile,name,
-        print >>dataFile, 'response'
-
-    print >>dataFile, nDone,
+        if task=='tracking':
+            print >>dataFile, 'response'
+        if task=='press':
+            print >>dataFile, 'response',
+            print >>dataFile, 'responseTime'
+        
+    print >>dataFile, nDone, angleIni,
     for value in thisTrial.values():
         print>>dataFile, value,
-    print>>dataFile, response
+    if task=='tracking':
+        print >>dataFile, response
+    if task=='press':
+        if response==None:
+            responseTime=None
+        print >>dataFile, response,
+        print >>dataFile, responseTime
     
 dataFile.close()
 core.quit()
