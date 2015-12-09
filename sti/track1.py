@@ -85,7 +85,7 @@ for thisTrial in trials:
     win.flip()
     win.setRecordFrameIntervals(False)
     
-    if task=='tracking':
+    if task=='track':
         response=getResponse(['left','right'])
     
     nDone+=1
