@@ -16,7 +16,7 @@ fixation.setAutoDraw(True)
 
 vars={'radius':[3.0],'freq':arange(0.75,3.75,0.25),'direction':[-1,1],'size':[2.0],
            'angleLandmark':arange(0.0,360.0,45.0),'radiusLandmark':[4.75], 'sizeLandmark':[2.0],
-            'durationIni':[1.0*hz],'durationRampingIni':[.75*hz],'duration':[2.0*hz],
+            'durationIni':[1.0*hz],'durationRampingIni':[.75*hz],'durationRampingLand':[1.5*hz],'duration':[2.0*hz],
             'durationRampingFinal':[.75*hz],'durationFinal':[1.0*hz],
             'same':[True,False]}
 stimList = createList(vars)
@@ -29,9 +29,16 @@ for thisTrial in trials:
     sti.setSize(thisTrial['size'])
     landmark.setSize(thisTrial['sizeLandmark'])
     r=thisTrial['radius']
-    durationTrial= thisTrial['durationIni']+thisTrial['durationRampingIni']+thisTrial['duration'] + thisTrial['durationRampingFinal']+thisTrial['durationFinal'] 
+    durationTrial= thisTrial['durationIni']+thisTrial['durationRampingIni']+thisTrial['durationRampingLand']+thisTrial['duration'] + thisTrial['durationRampingFinal']+thisTrial['durationFinal'] 
     win.setRecordFrameIntervals(True)
     angleIni=randint(0,359)
+    
+    rLandmark=thisTrial['radiusLandmark']
+    angleLandmark=thisTrial['angleLandmark']
+    angleLandmarkrad=angleLandmark/180.0*pi
+    xLandmark=rLandmark*cos(angleLandmarkrad)
+    yLandmark=rLandmark*sin(angleLandmarkrad)
+    landmark.setPos([xLandmark,yLandmark])
     
     myMouse.clickReset()
     for frame in range(int(durationTrial)):
@@ -42,8 +49,9 @@ for thisTrial in trials:
         y=r*sin(anglerad)
         t1=thisTrial['durationIni']
         t2=thisTrial['durationIni']+thisTrial['durationRampingIni']
-        t3=thisTrial['durationIni']+thisTrial['durationRampingIni']+ thisTrial['duration']
-        t4=thisTrial['durationIni']+thisTrial['durationRampingIni']+ thisTrial['duration']+thisTrial['durationRampingFinal']
+        t3=thisTrial['durationIni']+thisTrial['durationRampingIni']+ thisTrial['durationRampingLand']
+        t4=thisTrial['durationIni']+thisTrial['durationRampingIni']+ thisTrial['durationRampingLand'] +thisTrial['duration']
+        t5=thisTrial['durationIni']+thisTrial['durationRampingIni']+ thisTrial['durationRampingLand'] +thisTrial['duration']+thisTrial['durationRampingFinal']
         
         if frame <= t1:
             sti.setPos([x,y]); sti.draw()
@@ -52,27 +60,30 @@ for thisTrial in trials:
             lum=(frame-t1)/thisTrial['durationRampingIni']
             sti.setColor(lum); sti.setPos([-x,-y]); sti.draw()
         if frame > t2 and frame <= t3:
+            lumLand=(frame-t2)/thisTrial['durationRampingLand']
+            landmark.setColor(-lumLand); landmark.draw()
             sti.setColor(1); sti.setPos([x,y]); sti.draw()
             sti.setPos([-x,-y]); sti.draw()
         if frame > t3 and frame <= t4:
-            lum=1-(frame-t3)/thisTrial['durationRampingFinal']
+            sti.setColor(1); sti.setPos([x,y]); sti.draw()
+            sti.setPos([-x,-y]); sti.draw()
+            landmark.draw()
+        if frame > t4 and frame <= t5:
+            lum=1-(frame-t4)/thisTrial['durationRampingFinal']
+            landmark.draw()
             if thisTrial['same']:
                 sti.setColor(1); sti.setPos([x,y]); sti.draw()
                 sti.setColor(lum); sti.setPos([-x,-y]); sti.draw()
             else:
                sti.setColor(lum); sti.setPos([x,y]); sti.draw()
                sti.setColor(1); sti.setPos([-x,-y]); sti.draw()
-        if frame > t4:
+        if frame > t5:
+            landmark.draw()
             if thisTrial['same']:
                 sti.setColor(1); sti.setPos([x,y]); sti.draw()
             else:
                sti.setColor(1); sti.setPos([-x,-y]); sti.draw()
-        rLandmark=thisTrial['radiusLandmark']
-        angleLandmark=thisTrial['angleLandmark']
-        angleLandmarkrad=angleLandmark/180.0*pi
-        xLandmark=rLandmark*cos(angleLandmarkrad)
-        yLandmark=rLandmark*sin(angleLandmarkrad)
-        landmark.setPos([xLandmark,yLandmark]); landmark.draw()
+
         win.flip()
         esc()
 
