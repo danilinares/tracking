@@ -14,8 +14,8 @@ landmark=visual.PatchStim(win, tex='None', mask='gauss',color=-1)
 myMouse = event.Mouse(); myMouse.setVisible(0)
 fixation.setAutoDraw(True)
 
-vars={'radius':[4.0],'freq':arange(0.75,3.75,0.25),
-            'direction':[-1,1],'size':[3.0],
+vars={'radius':[4.0],'freq':[.1],
+            'direction':[1],'size':[3.0],
             'angleLandmark':arange(0.0,360.0,45.0),'radiusLandmark':[6.5], 'sizeLandmark':[3.0],
             'durationIni':[1.0*hz],'durationRampingIni':[.75*hz],'durationRampingLand':[1.0*hz],'duration':[1.5*hz],
             'durationRampingFinal':[.75*hz],'durationFinal':[1.0*hz],
@@ -46,6 +46,7 @@ for thisTrial in trials:
         sti.setColor(1)
         angle=angleIni+thisTrial['direction']*frame/hz*thisTrial['freq']*360.0
         anglerad=angle/180.0*pi
+        print angle
         x=r*cos(anglerad)
         y=r*sin(anglerad)
         t1=thisTrial['durationIni']
