@@ -6,15 +6,15 @@ myDlg.show(); expInfo = myDlg.data
 dataFile=openDataFile(expInfo[0])
 task=expInfo[1]
 
-win = visual.Window(monitor='testMonitor',allowGUI=False,units='deg')
-#win = visual.Window(monitor='macprotracking',allowGUI=False,units='deg',fullscr=1)
+#win = visual.Window(monitor='testMonitor',allowGUI=False,units='deg')
+win = visual.Window(monitor='macprotracking',allowGUI=False,units='deg',fullscr=1)
 fixation=visual.PatchStim(win, tex=None, mask='gauss', color=-1,size=1)
 sti=visual.PatchStim(win, tex='None', mask='gauss')
 landmark=visual.PatchStim(win, tex='None', mask='gauss',color=-1)
 myMouse = event.Mouse(); myMouse.setVisible(0)
 fixation.setAutoDraw(True)
 
-vars={'radius':[4.0],'freq':arange(0.75,3.75,0.25),
+vars={'radius':[4.0], 'freq':arange(0.75,3.75,0.25),
             'direction':[-1,1],'size':[3.0],
             'angleLandmark':arange(0.0,360.0,45.0),'radiusLandmark':[6.5], 'sizeLandmark':[3.0],
             'durationIni':[1.0*hz],'durationRampingIni':[.75*hz],'durationRampingLand':[1.0*hz],'duration':[1.5*hz],
