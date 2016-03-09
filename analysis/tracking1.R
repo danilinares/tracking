@@ -1,12 +1,12 @@
 library(quickpsy)
 library(circular)
 
+load('analysis/CircStatsInR.RData')
 ### parameters
 B <- 100 #bootstrap replications
 alpha <- .95 # significance level
 
 ### functions
-load('analysis/CircStatsInR.RData')
 toCircleRad <- function(x) circular(2*x/180*pi, units = 'radians', modulo = '2pi')
 toAxialDeg <- function(x) ((x/pi*180) / 2 + 90) %% 180 - 90
 
@@ -113,7 +113,7 @@ dispersionFun <- function(d, alpha, B) {
   rho <- pointEst[[2]][1]; rhomin <- pointEst[[2]][2]; rhomax <- pointEst[[2]][3]
   data.frame(rho, rhomin, rhomax)
 }
-dispersion <- dat %>% merge(uniformity) %>% #filter(uniform == F) %>%
+dispersion <- dat %>% merge(uniformity) %>% 
   group_by(freq) %>%
   do(dispersionFun(., alpha, B)) 
   
