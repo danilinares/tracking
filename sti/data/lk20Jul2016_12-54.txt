@@ -1,0 +1,1 @@
+trial angleIni angleLandmark direction durationRampingIni durationFinal sizeLandmark radiusLandmark durationRampingFinal durationIni same radius duration durationRampingLand freq size 1 176.707284962 330.957076991 -1 90.0 120.0 3.0 6.5 90.0 120.0 False 4.0 180.0 120.0 0.101 3.0

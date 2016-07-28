@@ -1,0 +1,4 @@
+trial angleIni direction durationRampingIni durationFinal sizeLandmark radiusLandmark durationRampingFinal durationIni same duration radius angleLandmark durationRampingLand freq size response
+1 321 -1 90.0 120.0 3.0 6.5 90.0 120.0 True 180.0 4.0 90.0 120.0 2.5 3.0 right
+2 46 -1 90.0 120.0 3.0 6.5 90.0 120.0 True 180.0 4.0 90.0 120.0 3.25 3.0 left
+3 227 -1 90.0 120.0 3.0 6.5 90.0 120.0 False 180.0 4.0 90.0 120.0 3.25 3.0 left

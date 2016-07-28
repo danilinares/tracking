@@ -1,13 +1,13 @@
 from psychopyHelp import *
 hz=120.0
-
-myDlg = gui.Dlg(title="Setting experiment"); myDlg.addField('Observer:','dl'); myDlg.addField('task (track/press):','press')
+# 1024*768
+myDlg = gui.Dlg(title="Setting experiment"); myDlg.addField('Observer:','dl'); myDlg.addField('task (tracking/press):','tracking')
 myDlg.show(); expInfo = myDlg.data
 dataFile=openDataFile(expInfo[0])
 task=expInfo[1]
 
-win = visual.Window(monitor='testMonitor',allowGUI=False,units='deg')
-#win = visual.Window(monitor='macprotracking',allowGUI=False,units='deg',fullscr=1)
+#win = visual.Window(monitor='testMonitor',allowGUI=False,units='deg')
+win = visual.Window(monitor='macprotracking',allowGUI=False,units='deg',fullscr=1)
 fixation=visual.PatchStim(win, tex=None, mask='gauss', color=-1,size=1)
 sti=visual.PatchStim(win, tex='None', mask='gauss')
 landmark=visual.PatchStim(win, tex='None', mask='gauss',color=-1)
@@ -97,7 +97,7 @@ for thisTrial in trials:
     win.flip()
     win.setRecordFrameIntervals(False)
     
-    if task=='track':
+    if task=='tracking':
         response=getResponse(['left','right'])
     
     nDone+=1
