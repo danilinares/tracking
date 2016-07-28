@@ -6,8 +6,8 @@ myDlg.show(); expInfo = myDlg.data
 dataFile=openDataFile(expInfo[0])
 task=expInfo[1]
 
-#win = visual.Window(monitor='testMonitor',allowGUI=False,units='deg')
-win = visual.Window(monitor='macprotracking',allowGUI=False,units='deg',fullscr=1)
+win = visual.Window(monitor='testMonitor',allowGUI=False,units='deg')
+#win = visual.Window(monitor='macprotracking',allowGUI=False,units='deg',fullscr=1)
 fixation=visual.PatchStim(win, tex=None, mask='gauss', color=-1,size=1)
 sti=visual.PatchStim(win, tex='None', mask='gauss')
 landmark=visual.PatchStim(win, tex='None', mask='gauss',color=-1)
