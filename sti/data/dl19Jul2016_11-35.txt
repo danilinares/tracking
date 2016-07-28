@@ -1,2 +1,0 @@
-trial angleIni direction durationRampingIni durationFinal sizeLandmark radiusLandmark durationRampingFinal durationIni same duration radius angleLandmark durationRampingLand freq size response responseTime
-1 165 -1 90.0 120.0 3.0 6.5 90.0 120.0 True 180.0 4.0 0.0 120.0 3.25 3.0 None None
