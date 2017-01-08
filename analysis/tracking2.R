@@ -10,20 +10,10 @@ twoColumnWidth <- 7
 sizeLine1 <- .25
 sizeText <- 2.5
 
-theme_track <- theme_set(theme_bw(10))
-theme_track <- theme_update(panel.border = element_blank(),
-                            panel.grid = element_blank(),
-                            strip.background = element_blank(),
+theme_track <- theme_set(theme_classic(10))
+theme_track <- theme_update(strip.background = element_blank(),
                             axis.ticks= element_line(size = sizeLine1),
-                            axis.line.x = element_line(colour = 'black', 
-                                                       size=sizeLine1, 
-                                                       linetype='solid'),
-                            axis.line.y = element_line(colour = 'black', 
-                                                      size=sizeLine1, 
-                                                      linetype='solid'),
-                            axis.ticks= element_line(size = sizeLine1), 
-                            strip.background = element_blank())
-
+                            axis.line = element_line(size=sizeLine1))
 ### functions ##################################################################
 totalerrorToDegSemi <- function(x) (x + 90) %% 180 - 90
 degSemiToDegFull <- function(x) 2 * x
@@ -61,16 +51,12 @@ avpha <- datpha %>%
     m <- smean.cl.boot(.$response)
     data.frame(m = m[[1]], inf = m[[2]], sup = m[[3]])
   })
-
-ggplot(avpha, 
-       aes(x = freq, y = m, ymin = inf, ymax = sup, color = participant)) +
-  geom_line() + geom_pointrange()
-
 ################################################################################
 ### tracking ###################################################################
 ################################################################################
 dattrack <- quickreadfiles(path = 'analysis/data', 
-                           participant = c('pa','cc','da','al','bj','he','lk'), 
+                           participant = c('pa','cc','da','al',
+                                           'bj','he','lk', 'ad'),
                            task = c('tracking'),
                            session = as.character(1:4))
 
@@ -81,7 +67,8 @@ dattrack$participant <- dattrack$participant  %>%
          al = 'Participant 4',
          bj = 'Participant 5',
          he = 'Participant 6',
-         lk = 'Participant 7')
+         lk = 'Participant 7', 
+         ad = 'Participant 8')
 
 dattrack <- dattrack %>% 
   select(participant, freq, same, response) %>%
@@ -108,8 +95,18 @@ fit80 <- quickpsy(dattrack, freq, response, grouping = .(participant),
 
 
 fitthre70 <- fit70$thresholds %>% rename(thre70 = thre) %>% select(-prob)
+fitthre80 <- fit70$thresholds %>% rename(thre80 = thre) %>% select(-prob)
 fitthre90 <- fit90$thresholds %>% rename(thre90 = thre) %>% select(-prob)
-fitthre <-fitthre70 %>% merge(fitthre90)
+fitthre <- fitthre70 %>% merge(fitthre90)
+
+### binomial tests 
+trackbinom <- fit70$averages %>% 
+  group_by(participant, freq)  %>% 
+  mutate(pvalue = binom.test(response, n)$p.value) %>% 
+  mutate(chance = ifelse(pvalue > 0.05, TRUE, FALSE))
+
+summarise(rayp = rayleigh.test(radFull)$p) %>% 
+  mutate(uniform = ifelse(rayp > 0.05, TRUE, FALSE)) 
 
 ### figure
 ptrack <- ggplot() + facet_wrap(~participant) +
@@ -126,13 +123,15 @@ ptrack <- ggplot() + facet_wrap(~participant) +
   geom_line(data =avpha, size = sizeLine1, 
              aes(x = freq, y = m, ymin = inf, ymax = sup, 
                  color = 'Alignment')) +
+  geom_text(data = trackbinom %>% mutate(ast = if_else(chance, '','*')),
+            aes(x = freq, label =ast), y = .5) +
   scale_color_brewer(palette = 'Set1') +
   scale_x_continuous(limits = c(0,3.5), breaks = seq(0,3.5,1)) +
   scale_y_continuous(breaks = seq(0.5,1,.25)) +
   labs(x = 'Frequency (rps)', y = 'Probability of correct responses') +
   theme(legend.key = element_blank(),
         legend.title = element_blank(),
-        legend.position = c(.7,.16),
+        legend.position = c(.8,.16),
         axis.title.x = element_text(hjust = 0.01))
 ptrack
 
@@ -143,10 +142,9 @@ save_plot('analysis/figures/trackalig.pdf', ptrack,
 ### sync #######################################################################
 ################################################################################
 dat <- quickreadfiles(path = 'analysis/data', 
-                      participant = c('pa','cc','da','al','bj','he','lk'), 
+                      participant = c('pa','cc','da','al','bj','he','lk','ad'),
                       task = c('press'), 
-                      session = as.character(1:4))
-
+                      session = as.character(1:8)) 
 
 dat$participant <- dat$participant  %>% 
   recode(pa = 'Participant 1',
@@ -155,34 +153,51 @@ dat$participant <- dat$participant  %>%
          al = 'Participant 4',
          bj = 'Participant 5',
          he = 'Participant 6',
-         lk = 'Participant 7')
+         lk = 'Participant 7', 
+         ad = 'Participant 8')
 
 dat <- dat %>% 
   select(participant, direction, angleLandmark, freq, response) %>%
-  filter(response != 9999) # the participant didn't respond
-
-dat <- dat %>% 
+  filter(response != 9999) %>% # the participant didn't respond
   mutate(totalerror = direction * (response - angleLandmark),
          degSemi =  totalerror %>% totalerrorToDegSemi(),
          degFull = degSemi %>% degSemiToDegFull(),
-         radFull = degFull %>% degFullToRadFull())
+         radFull = degFull %>% degFullToRadFull()) %>% 
+  group_by(participant, freq) 
 
 ### Null hypothesis testing: uniformity
 uniformity <- dat %>% 
-  group_by(participant, freq) %>% 
   summarise(rayp = rayleigh.test(radFull)$p) %>% 
-  mutate(uniform = ifelse(rayp > 0.05, TRUE, FALSE)) 
+  mutate(uniform = ifelse(rayp > 0.05, '>.05', 
+                          ifelse(rayp > .01, '<.05',
+                                 ifelse(rayp > .001, '<.01','<.001'))))
+         
+                                      
+         
+         
+                                  
+                    
+         
 
-datuniformity <- dat %>% merge(uniformity)
+datuniformity <- dat %>% left_join(uniformity)
 
-### means
+###  means
 circmeans <- datuniformity %>% 
   group_by(participant, freq, uniform) %>% 
   summarise(mrad = mean.circular(radFull), 
             mdegSemi = mrad %>% radFullToDegFull() %>% degFullToDegSemi()) %>% 
   filter(!uniform)
 
-### figure
+pmean <- ggplot(circmeans) +
+  facet_wrap(~participant) +
+  geom_point(data = datuniformity, alpha = .4,
+             aes(x = freq, y = degSemi, color = uniform)) +
+  geom_line(aes(x = freq, y = mdegSemi))
+pmean
+
+save_plot('analysis/figures/mean.pdf', pmean, base_width = twoColumnWidth)
+
+### circular representation
 anglestoplot <- tibble(n = 1:4, 
                        x = rep(3.6, 4), 
                        y = c(0, 45, 90, -45), 
@@ -191,23 +206,23 @@ anglestoplot <- tibble(n = 1:4,
 
 zeroline <- tibble(participant = datuniformity$participant %>% unique(),
                    x = 0,
-                   xend = c(3.8, 3.8, 3.8, 3.2, 3.2, 3.2, 3.2), 
+                   xend = c(3.8, 3.8, 3.8, 3.2, 3.2, 3.2, 3.2, 3.2), 
                    y = 0,
                    yend = 0)
 
+### figure raw
 praw <- ggplot() + facet_wrap(~participant, ncol = 3) +
-  geom_rect(data=fitthre, fill = 'black', alpha =.2,
-            aes(xmin = thre70, xmax = thre90, ymin = -90, ymax = 90)) +
+   geom_rect(data=fitthre, fill = 'black', alpha =.2,
+             aes(xmin = thre70, xmax = thre90, ymin = -90, ymax = 90)) +
   geom_point(data= datuniformity, aes(x = freq, y = degSemi, color = uniform), 
              size = .35, alpha = 0.5, shape = 16) +
+             #size=1) +
   geom_text(data = anglestoplot, aes(x = x, y = y, label= angle, group = n),
             size=sizeText) +
   geom_segment(data = zeroline, aes(y = y, yend = yend, x = x, xend = xend),
                size = sizeLine1)+
-  scale_color_discrete(guide=guide_legend(title = NULL,
-                                          override.aes = list(size = 1)), 
-                       breaks = c(T, F), 
-                       labels = c('Uniform', 'Non-uniform')) +
+  scale_color_manual(name = 'p',
+                     values=c('#08519c','#3182bd','#6baed6', '#b30000')) +
   scale_x_continuous(breaks = seq(0, 3, 1),labels = as.character(0:3)) +
   scale_y_continuous(breaks = seq(-45,90,45), limits = c(-90, 90),
                      labels =c('-45','0','45','90')) +
@@ -216,14 +231,46 @@ praw <- ggplot() + facet_wrap(~participant, ncol = 3) +
   coord_polar(theta='y', start = pi/2, direction = -1)+
   theme(axis.text.x = element_blank(), 
         axis.title.x = element_blank(),
+        axis.line.x = element_blank(),
         axis.line.y = element_line(size=sizeLine1), 
-        panel.margin = unit(-.32,'lines'),
+        panel.spacing = unit(-.32,'lines'),
         legend.key = element_blank(),
-        legend.position = c(.7,.16))
+        legend.key.height =  unit(.7,'lines'),
+        legend.position = c(.85,.16)) +
+  guides(colour = guide_legend(override.aes = list(size=2)))
 praw
 
-save_plot('analysis/figures/raw.pdf', praw,
-          base_width = oneColumnWidth)
+save_plot('analysis/figures/raw.pdf', praw, base_width = oneColumnWidth)
+
+### correlations
+nonuniformspeed <- uniformity %>% 
+  filter(!uniform) %>% 
+  summarise(freq = max(freq)) %>% 
+  rename(frequni=freq)
+
+nontrackspeed <- trackbinom %>% 
+  group_by(participant) %>% 
+  filter(!chance) %>% 
+  summarise(freq = max(freq)) %>% 
+  rename(freqtrack=freq)
+
+freqs <- nonuniformspeed %>% 
+  left_join(nontrackspeed) %>% 
+  left_join(fitthre80)
+
+
+ggplot(freqs, aes(frequni, thre90)) + 
+  geom_point() +
+  geom_abline() +
+  coord_equal(xlim = c(0, 2.5), ylim = c(0, 2.5)) 
+  
+cor.test(freqs$frequni, freqs$thre90)
+
+
+### t-test
+
+t.test(freqs$frequni,freqs$thre90, paired = TRUE)
+
 
 ### bootstrap 
 datboot <- expand.grid(n = 1:1000) %>% 
@@ -232,94 +279,188 @@ datboot <- expand.grid(n = 1:1000) %>%
     dat %>% 
       group_by(participant, freq) %>% 
       sample_frac(1, replace = T)
-  }) 
+  }) %>% 
+  group_by(participant, freq, n)
 
 ### simulated data 
 datsim <- data_frame(freqsim = unique(dat$freq)) %>% 
-  merge(dat) %>%
+  group_by(freqsim) %>%
+  do({dat}) %>% 
   filter(freqsim >= freq) %>% 
   mutate(degFullSim = freqsim / freq * degFull,
-         radFullSim = degFullSim %>% degFullToRadFull())
+         radFullSim = degFullSim %>% degFullToRadFull()) %>% 
+  group_by(participant, freq, freqsim)
 
+### bootstrap simulated data 
 datsimboot <- expand.grid(n = 1:1000) %>% 
   group_by(n) %>% 
   do({
     datsim %>% 
       group_by(participant, freq, freqsim) %>% 
       sample_frac(1, replace = T)
-  }) 
+  })%>% 
+  group_by(participant, freq, freqsim, n) 
 
+### uniformity sim
+uniformitysim <-  datsim %>% 
+  summarise(rayp = rayleigh.test(radFullSim)$p) %>% 
+  mutate(uniform = ifelse(rayp > 0.05, TRUE, FALSE)) 
 
-### dispersion rho 
-dispersion <- dat %>% 
-  group_by(participant, freq) %>%
-  summarise(rho = rho.circular(radFull))
-
-dispersionuniformity <- dispersion %>% merge(uniformity)
+###  rho 
+dispersion <- dat %>% summarise(rho = rho.circular(radFull))
 
 dispersionboot <- datboot %>% 
-  group_by(participant, freq, n) %>% 
-  summarise(rho = rho.circular(radFull))
+  summarise(rho = rho.circular(radFull %>% circular()))
 
 dispersionbootci <- dispersionboot %>% 
-  group_by(participant, freq) %>% 
   summarise(inf = quantile(rho, .025), 
             sup = quantile(rho, .975))
 
-dispersionbootciuniformity <- dispersionbootci %>% merge(uniformity)
+dispersionuniformity <- dispersion %>% left_join(dispersionbootci) %>% 
+  left_join(uniformity)
 
-dispersionsim <- datsim %>% 
-  group_by(participant, freq, freqsim) %>%
-  summarise(rho = rho.circular(radFullSim))
+###  rho sim
+dispersionsim <- datsim %>% summarise(rho = rho.circular(radFullSim))
 
-dispersionsimboot <- datsimboot %>% 
-  group_by(participant, freq, freqsim, n) %>%
-  summarise(rho = rho.circular(radFullSim))
+dispersionsimboot <- datsimboot %>%
+  summarise(rho = rho.circular(radFullSim %>% circular()))
 
 dispersionsimbootci <- dispersionsimboot %>% 
-  group_by(participant, freq, freqsim) %>% 
   summarise(inf = quantile(rho, .025), 
             sup = quantile(rho, .975))
 
-dispersionsimbootciplot <- dispersionsimbootci %>% 
-  mutate(freqsim2 = freq, freq2 = freqsim)
+dispersionsimuniformity <- dispersionsim %>% 
+  left_join(dispersionsimbootci) %>% 
+  left_join(uniformitysim)
 
+dispersionsimuniformityplot <- dispersionsimuniformity %>% 
+  mutate(freq2 = freq, freqsim2 = freqsim)
 
-### figure
-prho <- ggplot() + facet_grid(freqsim2~participant) +
-  geom_line(data = dispersionsimbootciplot, size = sizeLine1, 
-            aes(x = freq2, y = inf), color='grey') +
-  geom_line(data = dispersionsimbootciplot, size = sizeLine1,
-            aes(x = freq2, y = sup), color='grey') +
+### figure dispersion
+prho <- ggplot() + facet_grid(participant~freq2, scales = 'free') +
+  geom_line(data = dispersionsimuniformityplot, size = sizeLine1, 
+            aes(x = freqsim2, y = rho, color = uniform)) +
   geom_rect(data = fitthre, fill = 'black', alpha =.1,
             aes(xmin = thre70, xmax = thre90, ymin = 0, ymax = 1)) +
-  geom_line(data = dispersionuniformity,size = sizeLine1,
-            aes(x = freq, y = rho, color = uniform))+
   geom_point(data = dispersionuniformity, size = .8,
-            aes(x = freq, y = rho, color = uniform))+
-  geom_ribbon(data = dispersionbootciuniformity,  alpha =.2,
-             aes(x = freq, ymin = inf, ymax = sup,fill = uniform)) +
+             aes(x = freq, y = rho, color = uniform))+
+  geom_ribbon(data = dispersionuniformity,  alpha =.2,
+               aes(x = freq, ymin = inf, ymax = sup,fill = uniform)) +
+  geom_text(data = trackbinom %>% mutate(ast = if_else(chance, '','*')),
+            aes(x = freq, label =ast), y = 0) +
   scale_color_discrete(guide=guide_legend(title = NULL), 
                        breaks = c(T, F), 
                        labels = c('Uniform', 'Non-uniform')) +
   scale_fill_discrete(guide=guide_legend(title = NULL), 
-                       breaks = c(T, F), 
-                       labels = c('Uniform', 'Non-uniform')) +
+                      breaks = c(T, F), 
+                      labels = c('Uniform', 'Non-uniform')) +
   labs(x = 'Frequency (rps)', y = 'Rho') +
-  scale_y_continuous(breaks = seq(0,1,.5)) +
+  scale_y_continuous(breaks = seq(0,1,.5), limits = c(0,1)) +
   scale_x_continuous(limits = c(0,3.5), breaks = seq(0,3.5,1)) +
   theme(legend.key = element_blank(),
-        legend.position = c(.7,.16),
+      #  legend.position = c(.7,.16),
         axis.title.x = element_text(hjust = 0.01))
 prho
 
-save_plot('analysis/figures/rho2.pdf', prho,
-          base_width = twoColumnWidth, 
+
+### figure dispersion
+prho <- ggplot() + facet_grid(participant~freq2, scales = 'free') +
+  geom_line(data = dispersionsimuniformityplot, size = sizeLine1, 
+            aes(x = freqsim2, y = rho, color = uniform)) +
+  geom_rect(data = fitthre, fill = 'black', alpha =.1,
+            aes(xmin = thre70, xmax = thre90, ymin = 0, ymax = 1)) +
+  geom_point(data = dispersionuniformity, size = .8,
+             aes(x = freq, y = rho, color = uniform))+
+  geom_ribbon(data = dispersionuniformity,  alpha =.2,
+               aes(x = freq, ymin = inf, ymax = sup,fill = uniform)) +
+  geom_text(data = trackbinom %>% mutate(ast = if_else(chance, '','*')),
+            aes(x = freq, label =ast), y = 0) +
+  scale_color_discrete(guide=guide_legend(title = NULL), 
+                       breaks = c(T, F), 
+                       labels = c('Uniform', 'Non-uniform')) +
+  scale_fill_discrete(guide=guide_legend(title = NULL), 
+                      breaks = c(T, F), 
+                      labels = c('Uniform', 'Non-uniform')) +
+  labs(x = 'Frequency (rps)', y = 'Rho') +
+  scale_y_continuous(breaks = seq(0,1,.5), limits = c(0,1)) +
+  scale_x_continuous(limits = c(0,3.5), breaks = seq(0,3.5,1)) +
+  theme(legend.key = element_blank(),
+      #  legend.position = c(.7,.16),
+        axis.title.x = element_text(hjust = 0.01))
+prho
+
+save_plot('analysis/figures/rho.pdf', prho,
+          base_width = 2*twoColumnWidth, 
           base_height = twoColumnWidth)
 
+### two lower speeds 
+oneminfreqsim <- dispersion %>% group_by(participant) %>% do(head(.,1))
+twominfreqsim <- dispersion %>% group_by(participant) %>% do(head(.,2))
+
+datsim2 <- datsim %>% semi_join(twominfreqsim) %>% 
+  group_by(participant, freqsim)
+
+uniformitysim2 <-  datsim2 %>% 
+  summarise(rayp = rayleigh.test(radFullSim)$p) %>% 
+  mutate(uniform = ifelse(rayp > 0.05, TRUE, FALSE)) 
+
+      
+dispersionsim2 <- datsim2 %>% 
+  summarise(rho = rho.circular(radFullSim)) %>% 
+  anti_join(oneminfreqsim) %>% 
+  left_join(uniformitysim2)
+
+  
+prho2 <- ggplot() + facet_wrap(~participant, scales = 'free') +
+   geom_line(data = dispersionsim2, size = sizeLine1, 
+             aes(x = freqsim, y = rho, color = uniform)) +
+  geom_rect(data = fitthre, fill = 'black', alpha =.1,
+            aes(xmin = thre70, xmax = thre90, ymin = 0, ymax = 1)) +
+  geom_point(data = dispersionuniformity, size = .8,
+             aes(x = freq, y = rho, color = uniform))+
+  geom_ribbon(data = dispersionuniformity,  alpha =.2,
+              aes(x = freq, ymin = inf, ymax = sup,fill = uniform)) +
+  scale_color_discrete(guide=guide_legend(title = NULL), 
+                       breaks = c(T, F), 
+                       labels = c('Uniform', 'Non-uniform')) +
+  scale_fill_discrete(guide=guide_legend(title = NULL), 
+                      breaks = c(T, F), 
+                      labels = c('Uniform', 'Non-uniform')) +
+  labs(x = 'Frequency (rps)', y = 'Rho') +
+  scale_y_continuous(breaks = seq(0,1,.5), limits = c(0,1)) +
+  scale_x_continuous(limits = c(0,3.5), breaks = seq(0,3.5,1)) +
+  theme(legend.key = element_blank(),
+        #  legend.position = c(.7,.16),
+        axis.title.x = element_text(hjust = 0.01))
+prho2
+
 ### uniformity analysis
+dispersionbootciunifotest <-  datsim %>% 
+  summarise(rayp = rayleigh.test(radFullSim)$p) %>% 
+  mutate(uniform = ifelse(rayp > 0.05, TRUE, FALSE)) %>% 
+  rename(freq2 = freq, freqsim2 = freqsim)
+
+prhouni <- ggplot() + facet_wrap(~freq) +
+  #   geom_rect(data = fitthre, fill = 'black', alpha =.1,
+  #             aes(xmin = thre70, xmax = thre90, ymin = 0, ymax = 1)) +
+  geom_line(data = dispersionbootciunifotest %>% filter(freq < 2.5), 
+            aes(x = freqsim, y = m)) +
+  geom_line(data = dispersionuniformityplot,size = sizeLine1,
+            aes(x = freqsim, y = rho, color = uniform))+
+  scale_fill_discrete(guide=guide_legend(title = NULL), 
+                      breaks = c(T, F), 
+                      labels = c('Uniform', 'Non-uniform')) +
+  labs(x = 'Frequency (rps)', y = 'Rho') +
+  scale_y_continuous(breaks = seq(0,1,.5)) +
+  scale_x_continuous(limits = c(0,3.5), breaks = seq(0,3.5,.5)) +
+  theme(legend.key = element_blank(),
+        #  legend.position = c(.7,.16),
+        axis.title.x = element_text(hjust = 0.01))+
+  geom_vline(xintercept = 2)+geom_hline(yintercept = .05)
+prhouni 
+
+
 dispersionsimbootciunifotest <-  datsimboot %>% 
-  group_by(participant, freq, freqsim, n) %>%
   summarise(rayp = rayleigh.test(radFullSim)$p) %>% 
   mutate(uniform = ifelse(rayp > 0.05, TRUE, FALSE)) %>% 
   group_by(participant, freq, freqsim) %>%
@@ -328,9 +469,9 @@ dispersionsimbootciunifotest <-  datsimboot %>%
 dispersionuniformityplot <- dispersionuniformity %>%
   rename(freqsim=freq)
 
-prhouni <- ggplot() + facet_grid(freq~participant) +
-  geom_rect(data = fitthre, fill = 'black', alpha =.1,
-            aes(xmin = thre70, xmax = thre90, ymin = 0, ymax = 1)) +
+prhounisim <- ggplot() + facet_wrap(~freq) +
+#   geom_rect(data = fitthre, fill = 'black', alpha =.1,
+#             aes(xmin = thre70, xmax = thre90, ymin = 0, ymax = 1)) +
   geom_line(data = dispersionsimbootciunifotest %>% filter(freq < 2.5), 
             aes(x = freqsim, y = m)) +
    geom_line(data = dispersionuniformityplot,size = sizeLine1,
@@ -343,8 +484,9 @@ prhouni <- ggplot() + facet_grid(freq~participant) +
   scale_x_continuous(limits = c(0,3.5), breaks = seq(0,3.5,.5)) +
   theme(legend.key = element_blank(),
       #  legend.position = c(.7,.16),
-        axis.title.x = element_text(hjust = 0.01))
-prhouni
+        axis.title.x = element_text(hjust = 0.01))+
+  geom_vline(xintercept = 2)+geom_hline(yintercept = .05)
+prhounisim 
 
 save_plot('analysis/figures/rhounif.pdf', prhouni,
           base_width = oneColumnWidth)

@@ -1,0 +1,51 @@
+---
+title: "Wappred normal for sensorimotor synchronization task"
+output: html_document
+---
+
+```{r, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(circular)
+```
+
+Simulating normal distributions with fixed temporal standard deviation
+```{r, message=FALSE}
+sim <- expand.grid(freq = seq(.5,5,.5), 
+                   stams = seq(30,110, 10),
+                   n = 1:10000) %>% 
+  group_by(freq, stams, n) %>% 
+  mutate(responsems = rnorm(1, 0,stams), 
+         responseangle = responsems / 1000 * freq * 4 * pi)
+
+ggplot(sim, aes(x = responsems)) + 
+         facet_wrap(~stams) +
+         geom_histogram()
+```
+
+Plots for the angle (radians)
+```{r, message=FALSE}
+ggplot(sim, aes(x = responseangle)) + 
+         facet_wrap(~stams) +
+         geom_histogram()
+```
+
+Fittting wrapped normals to the response angle and transform them to temporal units
+```{r, warning=FALSE}
+funWrapSim <- function(d){
+  sta <- mle.wrappednormal(d$responseangle)$sd
+  stamswrap <- sta / (4*pi*first(d$freq))*1000 
+  data.frame(stamswrap)
+}
+
+simwrap <- sim %>% 
+  group_by(freq, stams) %>%
+  do(funWrapSim(.))
+
+ggplot(simwrap, aes(x = stams, y = stamswrap, color=factor(freq))) +
+  geom_abline(lty = 2) +
+         geom_line() +
+  labs(x = 'Original sta dev (ms)', y = 'Recovered sta dev (ms)')
+
+```
+
