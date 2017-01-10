@@ -143,7 +143,7 @@ trackingprobminfreq <- trackingprob %>% semi_join(minfreq) %>% ungroup() %>%
   rename(probfreqmin = prob) %>% select(-freq)
 
 trackingprob <- trackingprob %>% left_join(trackingprobminfreq) %>% 
-  mutate(probnotrack = 2*(probfreqmin - prob)) %>% 
+  mutate(probnotrack = 2*(1 - prob)) %>% # another possibility is to replace 1 by probfreqmin
   mutate(probnotrack = ifelse(probnotrack > 1, 1, probnotrack),
          probnotrack = ifelse(probnotrack < 0, 0, probnotrack)) %>% 
   rename(freqsim=freq)
@@ -160,6 +160,8 @@ datsimtrack <- datsim %>%
     notrack$radFullSim <- runif(nnotrack,0, 2*pi)
     rbind(track, notrack)
   })
+
+
 
 ### uniformity sim
 uniformitysimtrack <-  datsimtrack %>% 
@@ -217,31 +219,6 @@ dispersionsimtrackuniformity <- dispersionsimtrack %>%
 ### rho sim for min ferq
 dispersionsimtrackuniformitylowfreq <- dispersionsimtrackuniformity %>% 
   semi_join(minfreq) 
-
-### simulated data track #######################################################
-trackingprob <- fit80$averages %>% select(participant, freq, prob) 
-trackingprobminfreq <- trackingprob %>% semi_join(minfreq) %>% ungroup() %>% 
-  rename(probfreqmin = prob) %>% select(-freq)
-
-trackingprob <- trackingprob %>% left_join(trackingprobminfreq) %>% 
-  mutate(probnotrack = 2*(probfreqmin - prob)) %>% 
-  mutate(probnotrack = ifelse(probnotrack > 1, 1, probnotrack),
-         probnotrack = ifelse(probnotrack < 0, 0, probnotrack)) %>% 
-  rename(freqsim=freq)
-
-datsimtrack <- datsim %>% 
-  select(participant, freqsim, freq, radFullSim) %>% 
-  left_join(trackingprob) %>% 
-  do({
-    n <-length(.$radFullSim)
-    probnotrack <- unique(.$probnotrack)
-    nnotrack <- round(n * probnotrack)
-    track <- sample_n(.,n - nnotrack) 
-    notrack <- sample_n(.,nnotrack) 
-    notrack$radFullSim <- runif(nnotrack,0, 2*pi)
-    rbind(track, notrack)
-  })
-
 
 ### uniformity sim
 uniformitysimtrack <-  datsimtrack %>% 
