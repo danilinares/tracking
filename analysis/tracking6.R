@@ -181,13 +181,6 @@ dispersionsimuniformity <- dispersionsim %>%
   semi_join(minfreq) %>% semi_join(allfreqs) %>% 
   ungroup() %>% select(-freq) %>% rename(freq = freqsim)
 
-### comparison rho and rho sim
-dispersiondatsim <- (dispersionuniformity %>% mutate(simu =1)) %>% 
-  bind_rows(dispersionsimuniformity %>% mutate(simu = 2))
-
-difdatsim <- dispersiondatsim %>% group_by(participant, freq) %>% 
-  summarise(dif = diff(rho)) %>% group_by(participant) %>% 
-  summarise(p = t.test(dif)$p.value)
 
 ### comparison rho and rho sim all points 
 dispersionsimbootlowfreq <- dispersionsimboot %>% 
@@ -265,15 +258,6 @@ dispersionsimtrackuniformity <- dispersionsimtrack %>%
   mutate(simu = 'track') %>% 
   semi_join(minfreq) %>% semi_join(allfreqs) %>% 
   ungroup() %>% select(-freq) %>% rename(freq = freqsim)
-
-### comparison rho and rho sim track
-dispersiondatsimtrack <- (dispersionuniformity %>% mutate(simu =1)) %>% 
-  bind_rows(dispersionsimtrackuniformity %>% mutate(simu = 2))
-
-difdatsimtrack <- dispersiondatsimtrack %>% group_by(participant, freq) %>% 
-  summarise(dif = diff(rho)) %>% group_by(participant) %>% 
-  summarise(p = t.test(dif)$p.value)
-
 
 ### comparison rho and rho sim track 
 dispersionsimboottracklowfreq <- dispersionsimboottrack %>% 
